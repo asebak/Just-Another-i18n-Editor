@@ -7,4 +7,4 @@ Is an open source i18n desktop editor that helps to edit i18n property files.  W
 
 * Supports unlimited .i18n files to be edited simultaneously.
 * Supports adding comments to each tag.
-* Ability to filter TAGS.
+* Ability to filtering options to property tags.
