@@ -1,9 +1,0 @@
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\bin\Debug\i18nSapUI5Translator.exe.config
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\bin\Debug\i18nSapUI5Translator.exe
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\bin\Debug\i18nSapUI5Translator.pdb
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\obj\Debug\i18nSapUI5Translator.csprojResolveAssemblyReference.cache
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\obj\Debug\i18nSapUI5Translator.Properties.Resources.resources
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\obj\Debug\i18nSapUI5Translator.csproj.GenerateResource.Cache
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\obj\Debug\i18nSapUI5Translator.exe
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\obj\Debug\i18nSapUI5Translator.pdb
-c:\users\i840869\documents\visual studio 2013\Projects\i18nSapUI5Translator\i18nSapUI5Translator\obj\Debug\i18nSapUI5Translator.Translator.resources
