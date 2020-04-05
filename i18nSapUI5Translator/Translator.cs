@@ -10,20 +10,36 @@ using System.Windows.Forms;
 using System.IO;
 using System.Collections;
 using i18nSapUI5Translator.Classes;
+using i18nSapUI5Translator.Interfaces;
+
 namespace i18nSapUI5Translator
 {
     public partial class Translator : Form
     {
         private string[] mI18n;
         private string[] mI18nFiles;
-        public List<Dictionary<string, I18n>> mI18nDictionary { get; private set; }
+        public List<List<KeyValuePair<string, I18n>>> mI18nDictionary { get; private set; }
+        private List<ITranslationFileParser> _translators = new List<ITranslationFileParser> { new I18nParser(), new JsonParser()};
+        private ITranslationFileParser _translationParser;
         public Translator()
         {
             InitializeComponent();
             this.dataGridView1.Visible = false;
             this.label2.Visible = false;
+            this.label4.Visible = false;
+            this.button3.Visible = false;
+            this.listBox1.Visible = false;
             this.dataGridView1.MouseDown += dataGridView1_MouseDown;
             this.contextMenuStrip1.Click += new System.EventHandler(this.contextMenuStrip1_Click);
+            this.listBox1.SelectedIndexChanged += ListBox1_SelectedValueChanged;
+        }
+
+        private void ListBox1_SelectedValueChanged(object sender, EventArgs e)
+        {
+            this.CreateDGVColumns(this.mI18nFiles[this.listBox1.SelectedIndex], this.mI18nFiles);
+            this.label2.Visible = false;
+             this.dataGridView1.Visible = true;
+            this.ConstructDGVData(this.mI18nFiles[this.listBox1.SelectedIndex]);
         }
 
         private void contextMenuStrip1_Click(object sender, EventArgs e)
@@ -48,71 +64,140 @@ namespace i18nSapUI5Translator
             var result = folderBrowserDialog1.ShowDialog();
             if (result == DialogResult.OK)
             {
+                //search for properties files
                 this.textBox1.Text = folderBrowserDialog1.SelectedPath;
-                this.mI18nFiles = Directory.GetFiles(folderBrowserDialog1.SelectedPath, "*.properties").Select(p => Path.GetFileNameWithoutExtension(p)).ToArray();
-                this.mI18n = Directory.GetFiles(folderBrowserDialog1.SelectedPath, "*.properties");
-                if (this.mI18nFiles.Length <= 0)
+                foreach (var translator in _translators)
+                {
+                    this.mI18nFiles = Directory.GetFiles(folderBrowserDialog1.SelectedPath, "*" + translator.FileExt).Select(p => Path.GetFileNameWithoutExtension(p)).ToArray();
+                    this.mI18n = Directory.GetFiles(folderBrowserDialog1.SelectedPath, "*" + translator.FileExt);
+                    if (this.mI18nFiles.Length > 0)
+                    {
+                        _translationParser = translator;
+                        break;
+                    }
+                }
+
+                if (this.mI18nFiles.Length <= 0 || _translationParser == null)
                 {
                     this.label2.Visible = true;
                     return;
                 }
-                this.CreateDGVColumns(this.mI18nFiles);
-                this.label2.Visible = false;
-                this.dataGridView1.Visible = true;
-                this.ConstructDGVData();
+
+                this.label4.Visible = true;
+                this.listBox1.Visible = true;
+                listBox1.Items.AddRange(this.mI18nFiles);
+
             }
         }
 
-        private void CreateDGVColumns(string[] iI18nFiles)
+        private void CreateDGVColumns(string referenceFile, string[] iI18nFiles)
         {
+            this.dataGridView1.Columns.Clear();
             var stringCol = new DataGridViewTextBoxColumn();
             var commentCol = new DataGridViewTextBoxColumn();
             stringCol.HeaderText = "Tag";
             stringCol.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             stringCol.Name = "i18ntag";
-            commentCol.HeaderText = "Comment";
-            commentCol.Name = "comment";
+            commentCol.HeaderText = "ChildTag";
+            commentCol.Name = "childtag";
             commentCol.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.dataGridView1.Columns.AddRange(new DataGridViewColumn[] { stringCol, commentCol });
+
+            var i18nCol = new DataGridViewTextBoxColumn();
+            i18nCol.HeaderText = referenceFile;
+            i18nCol.Name = referenceFile;
+            i18nCol.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            this.dataGridView1.Columns.Add(i18nCol);
+
             for (var i = 0; i < iI18nFiles.Length; i++)
             {
-                var i18nCol = new DataGridViewTextBoxColumn();
-                i18nCol.HeaderText = iI18nFiles[i];
-                i18nCol.Name = iI18nFiles[i];
-                i18nCol.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-                this.dataGridView1.Columns.Add(i18nCol);
+                if (referenceFile != iI18nFiles[i])
+                {
+                    i18nCol = new DataGridViewTextBoxColumn();
+                    i18nCol.HeaderText = iI18nFiles[i];
+                    i18nCol.Name = iI18nFiles[i];
+                    i18nCol.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                    this.dataGridView1.Columns.Add(i18nCol);
+                }
             }
         }
 
-        private void ConstructDGVData()
+        private void ConstructDGVData(string referenceFile)
         {
-            this.mI18nDictionary = new List<Dictionary<string, I18n>>();
+            this.mI18nDictionary = new List<List<KeyValuePair<string, I18n>>>();
+            var reference = mI18n.Where(x => x.Contains(referenceFile)).First();
+            this.mI18nDictionary.Add(_translationParser.ReadFile(reference)); //start with reference file
             foreach (var s in mI18n)
             {
-                this.mI18nDictionary.Add(I18nParser.ReadFile(s));
+                if (reference != s)
+                {
+                    this.mI18nDictionary.Add(_translationParser.ReadFile(s)); //do the rest
+                }
             }
             //construct tags file based on primary i18n file
             foreach (KeyValuePair<string, I18n> p in this.mI18nDictionary[0])
             {
                 DataGridViewRow row = (DataGridViewRow)this.dataGridView1.Rows[0].Clone();
+
                 row.Cells[0].Value = p.Key;
-                row.Cells[1].Value = p.Value.Comment;
+                if (p.Key != p.Value.Key)
+                {
+                    row.Cells[1].Value = p.Value.Key;
+                }
                 this.dataGridView1.Rows.Add(row);
             }
             //will dynamically generate i18n properties
             var i18nFileNo = 0;
-            foreach (Dictionary<string, I18n> allI18n in this.mI18nDictionary)
+
+
+            foreach (List<KeyValuePair<string, I18n>> allI18n in this.mI18nDictionary)
             {
-                foreach (KeyValuePair<string, I18n> property in allI18n)
+                var groupedList = allI18n.GroupBy(kvp => kvp.Key).ToList();
+                foreach (var row in this.dataGridView1.Rows.Cast<DataGridViewRow>())
                 {
-                    var propertyRow = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() where row.Cells[0].Value.ToString() == property.Key select row);
-                    if (propertyRow.Any())
+                    var rootKey = (string)row.Cells[0].Value;
+                    var childRootKey = (string)row.Cells[1].Value;
+                    if(string.IsNullOrEmpty(rootKey))
                     {
-                        propertyRow.First().Cells[i18nFileNo + 2].Value = property.Value.Value;
+                        //might need to highlight red here
                     }
+                    if (!string.IsNullOrEmpty(rootKey) && string.IsNullOrEmpty(childRootKey))
+                    {
+                       var val =  groupedList.Where(x => x.Key == rootKey).FirstOrDefault();
+                        if(val != null)
+                        {
+                            row.Cells[i18nFileNo + 2].Value = val.First().Value.Value;
+                        }
+                        else
+                        {
+                            row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
+                            row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
+                        }
+                    }
+                    else
+                    {
+                        //search for rootKey and childRootKey and prepopulate, if nothing leaving empty
+                        var val = groupedList.Where(x => x.Key == rootKey).FirstOrDefault();
+                        if (val != null)
+                        {
+                            var val2 = val.Where(x => x.Value.Key == childRootKey).FirstOrDefault();
+                            if (val2.Key != null)
+                            {
+                                row.Cells[i18nFileNo + 2].Value = val2.Value.Value;
+                            }
+                            else
+                            {
+                                row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
+                                row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
+
+                            }
+                        }
+                    }
+
                 }
                 i18nFileNo++;
             }
+            this.button3.Visible = true;
         }
 
         private void button3_Click(object sender, EventArgs e)

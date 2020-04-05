@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections;
 using System.IO;
+using i18nSapUI5Translator.Interfaces;
+
 namespace i18nSapUI5Translator.Classes
 {
-    public class I18nParser
+    public class I18nParser : ITranslationFileParser
     {
-        public static Dictionary<string, I18n> ReadFile(string fileName)
+        public string Locale { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public string FileExt {get =>  ".properties";}
+
+        public List<KeyValuePair<string, I18n>> ReadFile(string fileName)
         {
             Dictionary<string, I18n> dictionary = new Dictionary<string, I18n>();
             foreach (string line in File.ReadAllLines(fileName))
@@ -35,10 +38,10 @@ namespace i18nSapUI5Translator.Classes
 
             dictionary = ParseComments(dictionary, fileName);
 
-            return dictionary;
+            return dictionary.ToList();
         }
 
-        private static Dictionary<string, I18n> ParseComments(Dictionary<string, I18n> dict, string file)
+        private Dictionary<string, I18n> ParseComments(Dictionary<string, I18n> dict, string file)
         {
             var lines = File.ReadAllLines(file);
             for (var i = 0; i < lines.Length; i++)
@@ -56,5 +59,6 @@ namespace i18nSapUI5Translator.Classes
             }
                 return dict;
         }
+
     }
 }
