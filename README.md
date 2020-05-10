@@ -12,6 +12,6 @@ Is an open source i18n desktop editor that helps to edit i18n property files.  W
 
 ## Configuration
 
-Need to define a env.txt file in output directory
-Create an Azure translator key and define the txt file with the following
-TRANSLATOR_TEXT_SUBSCRIPTION_KEY=key_here
+* Need to define a env.txt file in output directory
+* Create an Azure translator Resource
+* Added the following key in the txt file: TRANSLATOR_TEXT_SUBSCRIPTION_KEY=key_here
