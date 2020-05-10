@@ -11,6 +11,7 @@ using System.IO;
 using System.Collections;
 using i18nSapUI5Translator.Classes;
 using i18nSapUI5Translator.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace i18nSapUI5Translator
 {
@@ -22,10 +23,21 @@ namespace i18nSapUI5Translator
         private List<ITranslationFileParser> _translators = new List<ITranslationFileParser> { new I18nParser(), new JsonParser()};
         private ITranslationFileParser _translationParser;
         private const string key_var = "TRANSLATOR_TEXT_SUBSCRIPTION_KEY";
-        private static readonly string subscriptionKey = "";
+        private static string subscriptionKey;
         private static readonly string endpoint = "https://api.cognitive.microsofttranslator.com";
         public Translator()
         {
+          List<string> listLines = new List<string>();
+            foreach (var line in File.ReadLines("env.txt"))
+            {
+                var split = line.Split('=')[1];
+                if(key_var == line.Split('=')[0])
+                {
+                    subscriptionKey = split;
+                }
+            }
+
+
             if (null == subscriptionKey)
             {
                 throw new Exception("Please set/export the environment variable: " + key_var);
