@@ -40,6 +40,7 @@
             this.folderBrowserDialog2 = new System.Windows.Forms.FolderBrowserDialog();
             this.listBox1 = new System.Windows.Forms.ListBox();
             this.label4 = new System.Windows.Forms.Label();
+            this.AutoTranslate = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -94,7 +95,7 @@
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(14, 801);
+            this.button3.Location = new System.Drawing.Point(864, 792);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(75, 23);
             this.button3.TabIndex = 8;
@@ -119,11 +120,22 @@
             this.label4.TabIndex = 10;
             this.label4.Text = "Primary Reference File";
             // 
+            // AutoTranslate
+            // 
+            this.AutoTranslate.Location = new System.Drawing.Point(745, 792);
+            this.AutoTranslate.Name = "AutoTranslate";
+            this.AutoTranslate.Size = new System.Drawing.Size(104, 23);
+            this.AutoTranslate.TabIndex = 11;
+            this.AutoTranslate.Text = "AutoTranslate";
+            this.AutoTranslate.UseVisualStyleBackColor = true;
+            this.AutoTranslate.Click += new System.EventHandler(this.AutoTranslate_Click);
+            // 
             // Translator
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(951, 881);
+            this.Controls.Add(this.AutoTranslate);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.listBox1);
             this.Controls.Add(this.button3);
@@ -153,5 +165,6 @@
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ListBox listBox1;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Button AutoTranslate;
     }
 }

@@ -28,6 +28,7 @@ namespace i18nSapUI5Translator
             this.label2.Visible = false;
             this.label4.Visible = false;
             this.button3.Visible = false;
+            this.AutoTranslate.Visible = false;
             this.listBox1.Visible = false;
             this.dataGridView1.MouseDown += dataGridView1_MouseDown;
             this.contextMenuStrip1.Click += new System.EventHandler(this.contextMenuStrip1_Click);
@@ -146,6 +147,50 @@ namespace i18nSapUI5Translator
                 }
                 this.dataGridView1.Rows.Add(row);
             }
+            PopulateAndFillFields();
+            this.button3.Visible = true;
+            this.AutoTranslate.Visible = true;
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            var saveToFolder = folderBrowserDialog1.SelectedPath;
+            var tags = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[0].Value).Cast<string>().ToList();
+            var comments = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[1].Value).Cast<string>().ToList();
+            var i18nFileNo = 0;
+            foreach (var s in this.mI18nFiles)
+            {
+                var i18nRow = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[i18nFileNo + 2].Value).Cast<string>().ToList();
+                var i18n = tags.Zip(comments.Zip(i18nRow, (b, c) => new { b, c }), (a, b) => new I18n { Key = a, Comment = b.b, Value = b.c });
+
+                foreach (var p in i18n)
+                {
+                    using (StreamWriter writer = new StreamWriter(string.Format("{0}\\{1}.properties", saveToFolder, s), true))
+                    {
+                        if (!string.IsNullOrEmpty(p.Comment))
+                        {
+                            writer.WriteLine(string.Format("# {0}", p.Comment));
+                        }
+                        if (!string.IsNullOrEmpty(p.Key) && !string.IsNullOrEmpty(p.Key))
+                        {
+                            writer.WriteLine(string.Format("{0} = {1}", p.Key, p.Value));
+                        }
+                        else if (!string.IsNullOrEmpty(p.Key))
+                        {
+                            writer.WriteLine(string.Format("{0} = {1}", p.Key, p.Value));
+                        }
+                    }
+                }
+            }
+        }
+
+        private void AutoTranslate_Click(object sender, EventArgs e)
+        {
+            PopulateAndFillFields(true);
+        }
+
+        private void PopulateAndFillFields(bool translate = false)
+        {
             //will dynamically generate i18n properties
             var i18nFileNo = 0;
 
@@ -157,21 +202,29 @@ namespace i18nSapUI5Translator
                 {
                     var rootKey = (string)row.Cells[0].Value;
                     var childRootKey = (string)row.Cells[1].Value;
-                    if(string.IsNullOrEmpty(rootKey))
+                    if (string.IsNullOrEmpty(rootKey))
                     {
                         //might need to highlight red here
                     }
                     if (!string.IsNullOrEmpty(rootKey) && string.IsNullOrEmpty(childRootKey))
                     {
-                       var val =  groupedList.Where(x => x.Key == rootKey).FirstOrDefault();
-                        if(val != null)
+                        var val = groupedList.Where(x => x.Key == rootKey).FirstOrDefault();
+                        if (val != null)
                         {
                             row.Cells[i18nFileNo + 2].Value = val.First().Value.Value;
                         }
                         else
                         {
-                            row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
-                            row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
+                            if (!translate)
+                            {
+                                row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
+                                row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
+                            }
+                            else
+                            {
+                                row.Cells[i18nFileNo + 2].Value = row.Cells[2].Value; 
+                                row.Cells[i18nFileNo + 2].Style.BackColor = Color.Green;
+                            }
                         }
                     }
                     else
@@ -187,8 +240,17 @@ namespace i18nSapUI5Translator
                             }
                             else
                             {
-                                row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
-                                row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
+                                if (!translate)
+                                {
+                                    row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
+                                    row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
+                                }
+                                else
+                                {
+                                    // populate translation
+                                    row.Cells[i18nFileNo + 2].Value = row.Cells[2].Value; 
+                                    row.Cells[i18nFileNo + 2].Style.BackColor = Color.Green;
+                                }
 
                             }
                         }
@@ -196,43 +258,6 @@ namespace i18nSapUI5Translator
 
                 }
                 i18nFileNo++;
-            }
-            this.button3.Visible = true;
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            var result = folderBrowserDialog2.ShowDialog();
-            var tags = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>()  select row.Cells[0].Value).Cast<string>().ToList();
-            var comments = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[1].Value).Cast<string>().ToList(); 
-            var i18nFileNo = 0;
-            if (result == DialogResult.OK)
-            {
-                var saveToFolder = folderBrowserDialog2.SelectedPath;
-                foreach (var s in this.mI18nFiles)
-                {
-                    var i18nRow = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[i18nFileNo + 2].Value).Cast<string>().ToList();
-                    var i18n = tags.Zip(comments.Zip(i18nRow, (b, c) => new { b, c }), (a, b) => new I18n {Key= a, Comment = b.b, Value = b.c });
-
-                    foreach (var p in i18n)
-                    {
-                        using (StreamWriter writer = new StreamWriter(string.Format("{0}\\{1}.properties", saveToFolder, s), true))
-                        {
-                            if (!string.IsNullOrEmpty(p.Comment))
-                            {
-                                writer.WriteLine(string.Format("# {0}", p.Comment));
-                            }
-                            if (!string.IsNullOrEmpty(p.Key) && !string.IsNullOrEmpty(p.Key))
-                            {
-                                writer.WriteLine(string.Format("{0} = {1}", p.Key, p.Value));
-                            }
-                            else if (!string.IsNullOrEmpty(p.Key))
-                            {
-                                writer.WriteLine(string.Format("{0} = {1}", p.Key, p.Value));
-                            }
-                        }
-                    }
-                }
             }
         }
     }
