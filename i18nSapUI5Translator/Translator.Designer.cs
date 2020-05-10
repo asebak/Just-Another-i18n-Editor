@@ -95,9 +95,9 @@
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(864, 792);
+            this.button3.Location = new System.Drawing.Point(761, 758);
             this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(75, 23);
+            this.button3.Size = new System.Drawing.Size(178, 23);
             this.button3.TabIndex = 8;
             this.button3.Text = "Save Translations";
             this.button3.UseVisualStyleBackColor = true;
@@ -122,11 +122,11 @@
             // 
             // AutoTranslate
             // 
-            this.AutoTranslate.Location = new System.Drawing.Point(745, 792);
+            this.AutoTranslate.Location = new System.Drawing.Point(761, 702);
             this.AutoTranslate.Name = "AutoTranslate";
-            this.AutoTranslate.Size = new System.Drawing.Size(104, 23);
+            this.AutoTranslate.Size = new System.Drawing.Size(178, 23);
             this.AutoTranslate.TabIndex = 11;
-            this.AutoTranslate.Text = "AutoTranslate";
+            this.AutoTranslate.Text = "Auto Translate Missing Fields";
             this.AutoTranslate.UseVisualStyleBackColor = true;
             this.AutoTranslate.Click += new System.EventHandler(this.AutoTranslate_Click);
             // 

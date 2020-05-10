@@ -12,6 +12,7 @@ using System.Collections;
 using i18nSapUI5Translator.Classes;
 using i18nSapUI5Translator.Interfaces;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
 
 namespace i18nSapUI5Translator
 {
@@ -173,34 +174,85 @@ namespace i18nSapUI5Translator
 
         private void button3_Click(object sender, EventArgs e)
         {
+            this.button3.Enabled = false;
             var saveToFolder = folderBrowserDialog1.SelectedPath;
-            var tags = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[0].Value).Cast<string>().ToList();
-            var comments = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[1].Value).Cast<string>().ToList();
-            var i18nFileNo = 0;
-            foreach (var s in this.mI18nFiles)
+            var referenceI18n = this.mI18nFiles[this.listBox1.SelectedIndex];
+            if (typeof(I18nParser) == _translationParser.GetType())
             {
-                var i18nRow = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[i18nFileNo + 2].Value).Cast<string>().ToList();
-                var i18n = tags.Zip(comments.Zip(i18nRow, (b, c) => new { b, c }), (a, b) => new I18n { Key = a, Comment = b.b, Value = b.c });
-
-                foreach (var p in i18n)
+                var tags = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[0].Value).Cast<string>().ToList();
+                var comments = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[1].Value).Cast<string>().ToList();
+                var i18nFileNo = 0;
+                foreach (var s in this.mI18nFiles)
                 {
-                    using (StreamWriter writer = new StreamWriter(string.Format("{0}\\{1}.properties", saveToFolder, s), true))
+                    var i18nRow = (from row in this.dataGridView1.Rows.Cast<DataGridViewRow>() select row.Cells[i18nFileNo + 2].Value).Cast<string>().ToList();
+                    var i18n = tags.Zip(comments.Zip(i18nRow, (b, c) => new { b, c }), (a, b) => new I18n { Key = a, Comment = b.b, Value = b.c });
+
+                    foreach (var p in i18n)
                     {
-                        if (!string.IsNullOrEmpty(p.Comment))
+                        using (StreamWriter writer = new StreamWriter(string.Format("{0}\\{1}.properties", saveToFolder, s), true))
                         {
-                            writer.WriteLine(string.Format("# {0}", p.Comment));
-                        }
-                        if (!string.IsNullOrEmpty(p.Key) && !string.IsNullOrEmpty(p.Key))
-                        {
-                            writer.WriteLine(string.Format("{0} = {1}", p.Key, p.Value));
-                        }
-                        else if (!string.IsNullOrEmpty(p.Key))
-                        {
-                            writer.WriteLine(string.Format("{0} = {1}", p.Key, p.Value));
+                            if (!string.IsNullOrEmpty(p.Comment))
+                            {
+                                writer.WriteLine(string.Format("# {0}", p.Comment));
+                            }
+                            if (!string.IsNullOrEmpty(p.Key) && !string.IsNullOrEmpty(p.Key))
+                            {
+                                writer.WriteLine(string.Format("{0} = {1}", p.Key, p.Value));
+                            }
+                            else if (!string.IsNullOrEmpty(p.Key))
+                            {
+                                writer.WriteLine(string.Format("{0} = {1}", p.Key, p.Value));
+                            }
                         }
                     }
                 }
             }
+            else if (typeof(JsonParser) == _translationParser.GetType())
+            {
+                var i18nFileNo = 0;
+
+                var toSaveMi18nFiles = this.mI18nFiles.Where(x => !x.Contains(referenceI18n)).ToList();
+
+                foreach (var s in toSaveMi18nFiles)
+                {
+
+                    var filePath = string.Format("{0}\\{1}.json", saveToFolder, s);
+                    string json = File.ReadAllText(string.Format("{0}\\{1}.json", saveToFolder, referenceI18n));
+                    dynamic jsonObj = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
+
+                    foreach (var row in this.dataGridView1.Rows.Cast<DataGridViewRow>())
+                    {
+                        var tag = row.Cells[0].Value as string;
+                        var childTag = row.Cells[1].Value as string;
+                        if (!string.IsNullOrEmpty(tag))
+                        {
+
+                            if (string.IsNullOrEmpty(childTag))
+                            {
+                                //one level object
+                                jsonObj[tag] = row.Cells[i18nFileNo + 3].Value as string; //one after the reference file, reference file starts at 2
+                            }
+                            else
+                            {
+                                //two level object
+                                jsonObj[tag][childTag] = row.Cells[i18nFileNo + 3].Value as string;
+                            }
+                        }
+                    }
+
+
+                    string output = Newtonsoft.Json.JsonConvert.SerializeObject(jsonObj, Newtonsoft.Json.Formatting.Indented);
+                    File.WriteAllText(filePath, output);
+
+                    i18nFileNo++;
+                }
+            }
+            this.button3.Enabled = true;
+        }
+
+        public static bool DoesPropertyExist(dynamic obj, string property)
+        {
+            return ((Type)obj.GetType()).GetProperties().Where(p => p.Name.Equals(property)).Any();
         }
 
         private Translation[] TranslateAsync(string text)
@@ -231,7 +283,9 @@ namespace i18nSapUI5Translator
 
         private void AutoTranslate_Click(object sender, EventArgs e)
         {
+            this.button3.Enabled = false;
             PopulateAndFillFields(true);
+            this.button3.Enabled = true;
         }
 
         private void PopulateAndFillFields(bool translate = false)
@@ -247,44 +301,24 @@ namespace i18nSapUI5Translator
                 {
                     var rootKey = (string)row.Cells[0].Value;
                     var childRootKey = (string)row.Cells[1].Value;
-                    if (string.IsNullOrEmpty(rootKey))
+                    if (!string.IsNullOrEmpty(rootKey))
                     {
                         //might need to highlight red here
-                    }
-                    if (!string.IsNullOrEmpty(rootKey) && string.IsNullOrEmpty(childRootKey))
-                    {
-                        var val = groupedList.Where(x => x.Key == rootKey).FirstOrDefault();
-                        if (val != null)
+
+                        if (!string.IsNullOrEmpty(rootKey) && string.IsNullOrEmpty(childRootKey))
                         {
-                            row.Cells[i18nFileNo + 2].Value = val.First().Value.Value;
-                        }
-                        else
-                        {
-                            if (!translate)
+                            var val = groupedList.Where(x => x.Key == rootKey).FirstOrDefault();
+                            if (val != null)
                             {
-                                row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
-                                row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
-                            }
-                            else
-                            {
-                                var locale = val.FirstOrDefault().Value.Locale;
-                                var defaultLangSelectText = row.Cells[2].Value;
-                                var results = TranslateAsync((string)defaultLangSelectText);
-                                row.Cells[i18nFileNo + 2].Value = results.Where(x => x.To == locale).First().Text;
-                                row.Cells[i18nFileNo + 2].Style.BackColor = Color.Green;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        //search for rootKey and childRootKey and prepopulate, if nothing leaving empty
-                        var val = groupedList.Where(x => x.Key == rootKey).FirstOrDefault();
-                        if (val != null)
-                        {
-                            var val2 = val.Where(x => x.Value.Key == childRootKey).FirstOrDefault();
-                            if (val2.Key != null)
-                            {
-                                row.Cells[i18nFileNo + 2].Value = val2.Value.Value;
+                                var rootValue = val.First().Value.Value;
+                                if (string.IsNullOrEmpty(rootValue))
+                                {
+
+                                }
+                                else
+                                {
+                                    row.Cells[i18nFileNo + 2].Value = rootValue;
+                                }
                             }
                             else
                             {
@@ -296,19 +330,66 @@ namespace i18nSapUI5Translator
                                 else
                                 {
                                     var locale = val.FirstOrDefault().Value.Locale;
-                                    var defaultLangSelectText = row.Cells[2].Value;
-                                    var results = TranslateAsync((string)defaultLangSelectText);
-                                    row.Cells[i18nFileNo + 2].Value = results.Where(x => x.To == locale).First().Text;
-                                    row.Cells[i18nFileNo + 2].Style.BackColor = Color.Green;
+                                    FillInBlankCellWithTranslation(locale, i18nFileNo, row);
                                 }
-
                             }
                         }
-                    }
+                        else
+                        {
+                            //search for rootKey and childRootKey and prepopulate, if nothing leaving empty
+                            var val = groupedList.Where(x => x.Key == rootKey).FirstOrDefault();
+                            if (val != null)
+                            {
+                                var val2 = val.Where(x => x.Value.Key == childRootKey).FirstOrDefault();
+                                if (val2.Key != null)
+                                {
+                                    row.Cells[i18nFileNo + 2].Value = val2.Value.Value;
+                                }
+                                else
+                                {
+                                    if (!translate)
+                                    {
+                                        row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
+                                        row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
+                                    }
+                                    else
+                                    {
+                                        var locale = val.FirstOrDefault().Value.Locale;
+                                        FillInBlankCellWithTranslation(locale, i18nFileNo, row);
+                                    }
 
+                                }
+                            }
+                            else
+                            {
+                                //comes here if it's missing the root key
+                                if (!translate)
+                                {
+                                    row.Cells[i18nFileNo + 2].Value = ""; //highlight red it's missing 
+                                    row.Cells[i18nFileNo + 2].Style.BackColor = Color.Red;
+                                }
+                                else
+                                {
+                                    //override locale
+                                    val = groupedList.Where(x => x.Key == "locale").FirstOrDefault();
+                                    var locale = val.FirstOrDefault().Value.Locale;
+                                    FillInBlankCellWithTranslation(locale, i18nFileNo, row);
+                                }
+                            }
+                        }
+
+                    }
                 }
                 i18nFileNo++;
             }
+        }
+
+        private void FillInBlankCellWithTranslation(string locale, int fileNo, DataGridViewRow row)
+        {
+            var defaultLangSelectText = row.Cells[2].Value;
+            var results = TranslateAsync((string)defaultLangSelectText);
+            row.Cells[fileNo + 2].Value = results.Where(x => x.To == locale).First().Text;
+            row.Cells[fileNo + 2].Style.BackColor = Color.Green;
         }
     }
 }
