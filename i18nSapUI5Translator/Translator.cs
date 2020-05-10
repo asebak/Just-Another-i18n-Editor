@@ -21,8 +21,15 @@ namespace i18nSapUI5Translator
         public List<List<KeyValuePair<string, I18n>>> mI18nDictionary { get; private set; }
         private List<ITranslationFileParser> _translators = new List<ITranslationFileParser> { new I18nParser(), new JsonParser()};
         private ITranslationFileParser _translationParser;
+        private const string key_var = "TRANSLATOR_TEXT_SUBSCRIPTION_KEY";
+        private static readonly string subscriptionKey = "";
+        private static readonly string endpoint = "https://api.cognitive.microsofttranslator.com";
         public Translator()
         {
+            if (null == subscriptionKey)
+            {
+                throw new Exception("Please set/export the environment variable: " + key_var);
+            }
             InitializeComponent();
             this.dataGridView1.Visible = false;
             this.label2.Visible = false;
@@ -184,6 +191,32 @@ namespace i18nSapUI5Translator
             }
         }
 
+        private Translation[] TranslateAsync(string text)
+        {
+            StringBuilder builder = new StringBuilder();
+            var referenceI18n = this.mI18nFiles[this.listBox1.SelectedIndex];
+
+            for (int i = 0; i < mI18n.Length; i++)
+            {
+                if (!mI18n[i].Contains(referenceI18n))
+                {
+                    var fileName = Path.GetFileName(mI18n[i]);
+                    builder.Append($"to={fileName.Split('-')[0]}");
+                    if (i != mI18n.Length - 1)
+                    {
+                        builder.Append("&");
+                    }
+                }
+            }
+            // This is our main function.
+            // Output languages are defined in the route.
+            // For a complete list of options, see API reference.
+            // https://docs.microsoft.com/azure/cognitive-services/translator/reference/v3-0-translate
+            string route = $"/translate?api-version=3.0&{builder.ToString()}";
+            var results = MSTranslatorApi.TranslateTextRequest(subscriptionKey, endpoint, route, text).Result;
+            return results.FirstOrDefault().Translations;
+        }
+
         private void AutoTranslate_Click(object sender, EventArgs e)
         {
             PopulateAndFillFields(true);
@@ -222,7 +255,10 @@ namespace i18nSapUI5Translator
                             }
                             else
                             {
-                                row.Cells[i18nFileNo + 2].Value = row.Cells[2].Value; 
+                                var locale = val.FirstOrDefault().Value.Locale;
+                                var defaultLangSelectText = row.Cells[2].Value;
+                                var results = TranslateAsync((string)defaultLangSelectText);
+                                row.Cells[i18nFileNo + 2].Value = results.Where(x => x.To == locale).First().Text;
                                 row.Cells[i18nFileNo + 2].Style.BackColor = Color.Green;
                             }
                         }
@@ -247,8 +283,10 @@ namespace i18nSapUI5Translator
                                 }
                                 else
                                 {
-                                    // populate translation
-                                    row.Cells[i18nFileNo + 2].Value = row.Cells[2].Value; 
+                                    var locale = val.FirstOrDefault().Value.Locale;
+                                    var defaultLangSelectText = row.Cells[2].Value;
+                                    var results = TranslateAsync((string)defaultLangSelectText);
+                                    row.Cells[i18nFileNo + 2].Value = results.Where(x => x.To == locale).First().Text;
                                     row.Cells[i18nFileNo + 2].Style.BackColor = Color.Green;
                                 }
 

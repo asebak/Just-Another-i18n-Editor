@@ -22,6 +22,7 @@ namespace i18nSapUI5Translator.Classes
             {
                 fileName += FileExt;
             }
+            Locale = Path.GetFileName(fileName).Split('-')[0];
             List<KeyValuePair<string, I18n>> duplicateKeyDictionary = new List<KeyValuePair<string, I18n>>();
 
             using (StreamReader file = File.OpenText(fileName))
@@ -58,7 +59,8 @@ namespace i18nSapUI5Translator.Classes
                 dict.Add(new KeyValuePair<string, I18n>(jToken.Path.Split('.')[0], new I18n
                 {
                     Key = obj.Name,
-                    Value = obj.Value.ToString()
+                    Value = obj.Value.ToString(),
+                    Locale = this.Locale
                 }));
             }
             else if(jToken.Type == JTokenType.String)
@@ -67,7 +69,8 @@ namespace i18nSapUI5Translator.Classes
                 dict.Add(new KeyValuePair<string, I18n>(jToken.Path.ToString(), new I18n
                 {
                     Value = obj,
-                    Key = jToken.Path.ToString()
+                    Key = jToken.Path.ToString(),
+                    Locale = this.Locale
                 }));
             }
 
